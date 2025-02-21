@@ -1,22 +1,27 @@
-import time
 import streamlit as st
+import nltk
 import spacy
+nltk.download('stopwords')
 spacy.load('en_core_web_sm')
 
 import pandas as pd
+import base64, random
 import time, datetime
 from pyresparser import ResumeParser
-# from resume_parser import resumeparse
+from pdfminer3.layout import LAParams, LTTextBox
+from pdfminer3.pdfpage import PDFPage
+from pdfminer3.pdfinterp import PDFResourceManager
+from pdfminer3.pdfinterp import PDFPageInterpreter
+from pdfminer3.converter import TextConverter
+import io, random
 from streamlit_tags import st_tags
 from PIL import Image
-# import pymysql
 import mysql.connector
+import pymysql
+# from Courses import ds_course, web_course, android_course, ios_course, uiux_course, resume_videos, interview_videos
 import plotly.express as px
-from plotly import optional_imports
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-import os
+
+
 
 def send_email(to_email, subject, message):
     try:
@@ -149,9 +154,9 @@ def run():
     st.markdown(original_title, unsafe_allow_html=True)
 
     # st.title(":green[Smart Resume Screening]")
-    st.sidebar.markdown("### **Choose User**")
+    st.sidebar.markdown("### *Choose User*")
     activities = ["User 🧑🏻‍💻", "Admin 👤","Company 🏢"]
-    choice = st.sidebar.selectbox("**Choose among the given options:**", activities)
+    choice = st.sidebar.selectbox("*Choose among the given options:*", activities)
 
     # Create the DB
     # db_sql = """CREATE DATABASE IF NOT EXISTS SRA3;"""
@@ -184,7 +189,7 @@ def run():
             
 
             try:
-                pdf_file = st.file_uploader("**Choose your Resume**", type=["pdf"])
+                pdf_file = st.file_uploader("*Choose your Resume*", type=["pdf"])
                 if st.button("Submit Resume", type="primary"):
                     if pdf_file is not None:
                         # save_image_path = './Uploaded_Resumes/' + pdf_file.name
@@ -199,17 +204,17 @@ def run():
                             with st.spinner('Wait for it...'):
                                 time.sleep(2)
                             try:
-                                st.subheader("**Resume Analysis:**")
-                                st.success("**_Congratulations " + resume_data['name'] + ' 🎉. Your Resume has been Submitted._**')
+                                st.subheader("*Resume Analysis:*")
+                                st.success("Congratulations " + resume_data['name'] + ' 🎉. Your Resume has been Submitted.')
                                 
-                                st.subheader("**Candidates Basic Information:**")
+                                st.subheader("*Candidates Basic Information:*")
                                 st.text('Name: ' + resume_data['name'])
                                 st.text('Email: ' + resume_data['email'])
                                 # st.text('Resume pages: ' + str(resume_data['no_of_pages']))
                                 st.text('Experience: ' + str(resume_data['total_experience']))
                                 # raise ValueError("There is an error parsing the resume")
                             except ValueError:
-                                st.error("**⚠ An unexpected ERROR occurred during resume processing.**")
+                                st.error("⚠ An unexpected ERROR occurred during resume processing.")
                             # except Exception as e:
                             #     st.error("An unexpected error occurred during resume processing.")
 
@@ -239,12 +244,12 @@ def run():
                             connection.commit()
 
                         else:
-                            st.error("**:red[⚠ sometimes went wrong.....]**")
+                            st.error(":red[⚠ sometimes went wrong.....]")
                     else:
-                        st.warning('**:red[⚠ Warning message]**')
-                        st.error("**_:red[Please Upload Your Resume]_**")
+                        st.warning(':red[⚠ Warning message]')
+                        st.error(":red[Please Upload Your Resume]")
             except Exception:
-                st.error("**⚠ An unexpected ERROR occurred during resume processing.**")
+                st.error("⚠ An unexpected ERROR occurred during resume processing.")
 
 
     elif choice=='Admin 👤':
@@ -256,8 +261,8 @@ def run():
             st.markdown(original_title1, unsafe_allow_html=True)
 
             # st.header(":blue[Welcome to Admin Side]")
-            admin_user=st.text_input("**:orange[Username]**")
-            admin_password=st.text_input("**:orange[Password]**",type='password')
+            admin_user=st.text_input(":orange[Username]")
+            admin_password=st.text_input(":orange[Password]",type='password')
             loadnow11=st.button("login",type="primary")
             #initialize session state
             if "loadnow11_state" not in st.session_state:
@@ -267,22 +272,22 @@ def run():
                 with st.spinner(':blue[Wait for it...]'):
                     time.sleep(2)
                 if admin_user=='admin' and admin_password=='admin123':
-                    st.success("##### **_:blue[Welcome Admin]_**")
+                    st.success("##### *:blue[Welcome Admin]*")
 
                     cursor.execute('''SELECT ID,Name,Email_ID,Timestamp,Experience,Actual_skills FROM user_data''')
                     data = cursor.fetchall()
-                    st.header("**User's Data**")
+                    st.header("*User's Data*")
                     df = pd.DataFrame(data, columns=['ID', 'Name', 'Email', 'Timestamp', 'Experience', 'Actual Skills'])
                     # df_filtered = df.drop(columns=['Count'])
                     st.dataframe(df)
 
                     cursor.execute('''SELECT*FROM com_data''')
                     data1 = cursor.fetchall()
-                    st.header("**Company's Data**")
+                    st.header("*Company's Data*")
                     df = pd.DataFrame(data1, columns=['CID', 'CName', 'Password'])
                     st.dataframe(df)
 
-                    c_id=st.text_input("**Enter Company ID for Show company's Previous Posts:**")
+                    c_id=st.text_input("*Enter Company ID for Show company's Previous Posts:*")
                     loadnow1=st.button("Show Previous Posts",type="primary")
                     #initialize session state
                     if "loadnow1_state" not in st.session_state:
@@ -302,15 +307,15 @@ def run():
                                     st.dataframe(recruit_df)
                                 else:
                                     
-                                    st.info(f"**No previous recruitment posts for {c_id}.**")
+                                    st.info(f"*No previous recruitment posts for {c_id}.*")
                             else:
                                 st.error("There is no such ID exists.")
 
                 else:
-                    st.error("**_:red[Wrong ID or Password is Provided]_**")
+                    st.error(":red[Wrong ID or Password is Provided]")
 
         except Exception as main_error:
-            st.error(f"**⚠ An unexpected error occurred: {main_error}**")
+            st.error(f"⚠ An unexpected error occurred: {main_error}")
 
     else:
         try:
@@ -321,7 +326,7 @@ def run():
             st.markdown(original_title1, unsafe_allow_html=True)
 
             activities1 = ["Sign in", "Sign up"]
-            choice1 = st.selectbox("**Choose among the given options:**", activities1)
+            choice1 = st.selectbox("*Choose among the given options:*", activities1)
             DB_table_name1 = 'com_data'
             table_sql1 = "CREATE TABLE IF NOT EXISTS " + DB_table_name1 + """
                         (cid INT NOT NULL AUTO_INCREMENT,
@@ -332,8 +337,8 @@ def run():
             cursor.execute(table_sql1)
 
             if choice1=='Sign up':
-                name=st.text_input("**Company_name**")
-                password=st.text_input("**Company_password**")
+                name=st.text_input("*Company_name*")
+                password=st.text_input("*Company_password*")
 
                 if st.button("Create Profile", type="primary"):
                     # # insert_com_data(cid,name,password)
@@ -347,14 +352,14 @@ def run():
                     company_exists = cursor.fetchone()
 
                     if company_exists:
-                        st.error(f"**_A company with the name '{name}' already exists. Please use a different name or log in._**")
+                        st.error(f"A company with the name '{name}' already exists. Please use a different name or log in.")
                     else:
                         try:
                             new_cid = insert_com_data(name, password)
-                            st.success(f"**_:blue[Your profile is created. Your company ID is {new_cid}]_**")
+                            st.success(f":blue[Your profile is created. Your company ID is {new_cid}]")
                             st.balloons()
                         except Exception as e:
-                            st.error(f"**_An unexpected error occurred: {e}_**")
+                            st.error(f"An unexpected error occurred: {e}")
 
             else:       
 
@@ -374,8 +379,8 @@ def run():
                 
 
                 # st.header(":blue[Welcome to Company Side]")
-                company_user=st.text_input("**:orange[User ID]**")
-                company_password=st.text_input("**:orange[Password]**",type='password')
+                company_user=st.text_input(":orange[User ID]")
+                company_password=st.text_input(":orange[Password]",type='password')
 
                 load=st.button('Sign in',type="primary")
                 #initialize session state
@@ -407,11 +412,11 @@ def run():
                     
                             # if company_user==db_user and company_password==db_password:
 
-                                st.success("##### **_:blue[Welcome Company]_**")
+                                st.success("##### *:blue[Welcome Company]*")
                                 # st.success("welcome")
                                         
                                 activities = ["Web Development", "Python Development", "Java Development", "Data Scientist", "Full Stack Development","Android Development"]     
-                                choice1 = st.selectbox("**Choose Required Domain:**", activities)
+                                choice1 = st.selectbox("*Choose Required Domain:*", activities)
                                 # st.write("You Selected:", choice1)
                                 st.subheader("You Selected: " + choice1)
                                 cursor.execute('''SELECT Actual_skills FROM user_data''')
@@ -599,8 +604,8 @@ def run():
                                 # timestamp = str(cur_date + '_' + cur_time)
                             
                             # st.balloons()
-                                age = st.slider("**select required experience year?**", 0, 40, 5)
-                                st.subheader("**Experience level set to: **"+ str(age) + "** years**")
+                                age = st.slider("*select required experience year?*", 0, 40, 5)
+                                st.subheader("*Experience level set to: **"+ str(age) + "* years**")
 
                                 # d = st.date_input("Select the deadline of posts", value=None)
                                 # st.write("Recruitment deadline is:", d)
@@ -623,7 +628,7 @@ def run():
                                     cursor.execute(f"SELECT ID,Name,Email_ID,Experience,Actual_skills,Count FROM {DB_table_name} WHERE Count>=1 and Experience >= %s ORDER BY Count DESC", (age,))
                                     data10 = cursor.fetchall()
 
-                                    st.header("**User's Basic Data**")
+                                    st.header("*User's Basic Data*")
                                     df1 = pd.DataFrame(data10, columns=['ID', 'Name', 'Email', 'Experience', 'Actual Skills','Matching skills'])        
                                     st.dataframe(df1)
                                     # st.balloons()
@@ -673,7 +678,7 @@ def run():
                                                 subject = f"Congratulations! Your Application Has Been Shortlisted"
                                                 message = f"Dear {row['Name']},\n\nWe are pleased to inform you that your resume has been shortlisted for the position of {choice1} at {r[0].upper()}.\n\nYour skills and qualifications align well with the company requirements. The further process will be managed directly by {r[0].upper()}. They will reach out to you soon regarding the next steps in the selection process.\n\nWishing you the best of luck!\n\nBest regards,\nSmart Hiring System\nsmarthiringsystem2024@gmail.com."
                                                 send_email(row["Email_ID"], subject, message)
-                                                st.success(f"**Acceptance email sent to {row['Name']}**")
+                                                st.success(f"*Acceptance email sent to {row['Name']}*")
 
 
                                 if st.button("View Previous Recruitment Posts"):
@@ -681,17 +686,16 @@ def run():
                                 
                                     if previous_posts:
                                         # delete_expired_posts()
-                                        st.header("**Previous Recruitment Posts**")
+                                        st.header("*Previous Recruitment Posts*")
                                         df = pd.DataFrame(previous_posts, columns=['RID', 'CID', 'Domain', 'Recommended Skills', 'Timestamp', 'Experience'])
                                         st.dataframe(df)
                                     else:
                                         st.info("No previous recruitment posts found.")
 
                         else:
-                            st.error("**_:red[Wrong ID & Password Provided]_**")
+                            st.error(":red[Wrong ID & Password Provided]")
 
         except Exception as main_error:
-            st.error(f"**⚠ An unexpected error occurred: {main_error}**")
+            st.error(f"⚠ An unexpected error occurred: {main_error}")
 
 run()
-
